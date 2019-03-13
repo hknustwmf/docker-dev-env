@@ -1,0 +1,47 @@
+# MediaWiki with MariaDB
+#
+# Access via "http://localhost:8080"
+#   (or "http://$(docker-machine ip):8080" if using docker-machine)
+version: '3'
+services:
+  mediawiki:
+    build: 
+      context: ./mw-local
+      args:
+        - WITH_XDEBUG=true
+    container_name: mw_web_dev
+    depends_on: 
+      - mw_db
+    environment:
+      XDEBUG_HOST: ${XDEBUG_HOST}
+      XDEBUG_CONFIG: remote_host=${XDEBUG_HOST} remote_port=9000
+    image: mw-local
+    links:
+      - mw_db
+    ports:
+      - 8080:80
+    restart: always
+    volumes:
+      - /home/holger/git/wmf/gerrit/mediawiki:/var/www/html
+      - /home/holger/git/wmf/gerrit/skins:/var/www/html/skins
+      - /var/www/html/images
+      # After initial setup, download LocalSettings.php to the same directory as
+      # this yaml and uncomment the following line and use compose to restart
+      # the mediawiki service
+      - ./LocalSettings.php:/var/www/html/LocalSettings.php
+  mw_db:
+    image: mariadb
+    container_name: mw_db_dev
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      # @see https://phabricator.wikimedia.org/source/mediawiki/browse/master/includes/DefaultSettings.php
+      MYSQL_DATABASE: my_wiki
+      MYSQL_USER: wikiuser
+      MYSQL_PASSWORD: example
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+    volumes:
+      - dev-db:/var/lib/mysql
+volumes:
+  dev-db: {}
